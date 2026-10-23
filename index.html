@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#fff8ed"><title>Doucement</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icons/icon-180.png"><link rel="stylesheet" href="style.css">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem("doucement.theme")||"light"}catch(e){}</script>
+<style>
+html,body{height:100%;margin:0;overflow:hidden;background:var(--cream)}
+#view{position:fixed;inset:0;width:100%;height:100%;border:0;display:block;background:transparent}
+.dock{position:fixed;right:16px;bottom:16px;z-index:50;display:grid;justify-items:end;gap:10px;font-family:var(--font)}
+.dock-btn{display:inline-flex;align-items:center;gap:8px;height:46px;padding:0 18px;border-radius:999px;border:1.5px solid var(--line-strong);background:var(--ink);color:var(--cream);font-weight:700;box-shadow:var(--shadow-lg);transition:transform .3s var(--ease)}
+.dock-btn[hidden]{display:none}
+.dock{grid-auto-flow:row}
+.dock-btn:hover{transform:translateY(-3px) rotate(-1.5deg)}
+.dock-btn .eq{display:inline-flex;gap:2px;align-items:end;height:14px}
+.dock-btn .eq i{width:3px;background:var(--yellow);border-radius:2px;animation:eq 1s ease-in-out infinite}
+.dock-btn .eq i:nth-child(2){animation-delay:.2s}.dock-btn .eq i:nth-child(3){animation-delay:.4s}
+@keyframes eq{0%,100%{height:4px}50%{height:14px}}
+.dock-panel{width:min(360px,calc(100vw - 32px));padding:14px;border-radius:var(--radius);background:var(--card);border:1.5px solid var(--line);box-shadow:var(--shadow-lg);transition:opacity .25s,transform .35s var(--ease),max-height .35s var(--ease);max-height:420px;overflow:hidden}
+.dock-panel.closed{opacity:0;transform:translateY(12px) scale(.96);max-height:0;padding:0;border-width:0;pointer-events:none}
+.dock-panel h2{font:700 1rem var(--display);margin:0 0 4px}
+.dock-panel p{margin:0 0 10px;color:var(--ink-2);font-size:.82rem}
+.dock-row{display:flex;gap:8px}
+.dock-row input{flex:1;min-width:0;border:1.5px solid var(--line);background:var(--card-2);color:var(--ink);border-radius:12px;padding:10px 12px;outline:none}
+.dock-row input:focus{border-color:var(--orange)}
+.dock-row button{border:0;border-radius:12px;background:var(--orange);color:#fff;font-weight:700;padding:0 14px}
+#player{margin-top:10px}
+#player iframe{width:100%;height:152px;border:0;border-radius:14px;display:block}
+.dock-hint{color:var(--ink-2);font-size:.8rem}
+@media(max-width:700px){.dock{bottom:10px;right:10px}.dock-btn span.t{display:none}.dock-btn{padding:0 14px}}
+</style></head>
+<body>
+<iframe id="view" title="Doucement" src="accueil.html"></iframe>
+<div class="dock">
+  <div class="dock-panel closed" id="dockPanel">
+    <h2>♫ Musique de fond</h2>
+    <p>Colle un lien Spotify : la musique continue quand tu changes de page.</p>
+    <div class="dock-row"><input id="spUrl" type="url" placeholder="https://open.spotify.com/playlist/…" aria-label="Lien Spotify"><button id="spLoad" type="button">Écouter</button></div>
+    <div id="player"><p class="dock-hint">Le lecteur apparaîtra ici (playlist, album ou titre).</p></div>
+  </div>
+  <button class="dock-btn" id="installBtn" type="button" hidden>⇩ <span class="t">Installer</span></button>
+  <button class="dock-btn" id="dockBtn" type="button" aria-expanded="false"><span class="eq" id="eq" hidden><i></i><i></i><i></i></span>♫ <span class="t">Musique</span></button>
+</div>
+<script>
+(function(){
+  const view=document.getElementById('view');
+  let t=decodeURIComponent(location.hash.slice(1)||'');
+  if(!/^[\w-]+\.html(\?.*)?$/.test(t)||t==='index.html')t='accueil.html';
+  view.src=t;
+  view.addEventListener('load',()=>{try{const l=view.contentWindow.location;history.replaceState(null,'','#'+l.pathname.split('/').pop()+l.search);document.title=view.contentDocument.title||'Doucement'}catch(e){}});
+  window.addEventListener('storage',e=>{if(e.key==='doucement.theme'&&e.newValue)document.documentElement.dataset.theme=e.newValue});
+  const K='doucement.spotifyUrl',panel=document.getElementById('dockPanel'),btn=document.getElementById('dockBtn'),inp=document.getElementById('spUrl'),pl=document.getElementById('player'),eq=document.getElementById('eq');
+  const tog=o=>{panel.classList.toggle('closed',!o);btn.setAttribute('aria-expanded',o)};
+  btn.addEventListener('click',()=>tog(panel.classList.contains('closed')));
+  function load(){const raw=inp.value.trim();const m=raw.match(/open\.spotify\.com\/(?:intl-[a-z]+\/)?(playlist|album|track|episode|show)\/([A-Za-z0-9]+)/);if(!m){pl.innerHTML='<p class="dock-hint">Lien Spotify non reconnu. Colle un lien de playlist, album ou titre.</p>';return}try{localStorage.setItem(K,raw)}catch(e){}pl.innerHTML='';const f=document.createElement('iframe');f.title='Lecteur Spotify';f.src=`https://open.spotify.com/embed/${m[1]}/${m[2]}?utm_source=generator`;f.allow='autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture';pl.append(f);eq.hidden=false}
+  document.getElementById('spLoad').addEventListener('click',load);inp.addEventListener('keydown',e=>{if(e.key==='Enter')load()});
+  let dp=null;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();dp=e;document.getElementById('installBtn').hidden=false});document.getElementById('installBtn').addEventListener('click',async()=>{if(!dp)return;dp.prompt();await dp.userChoice.catch(()=>{});dp=null;document.getElementById('installBtn').hidden=true});window.addEventListener('appinstalled',()=>{document.getElementById('installBtn').hidden=true});
+  let saved='';try{saved=localStorage.getItem(K)||''}catch(e){}if(saved){inp.value=saved;load()}
+})();
+</script>
+<script src="extras.js" defer></script></body></html>
